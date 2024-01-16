@@ -68,6 +68,8 @@ type KubeAPIServerParams struct {
 
 	Availability           hyperv1.AvailabilityPolicy
 	APIServerSTSDirectives string
+
+	KonnectivityServiceName string
 }
 
 type KubeAPIServerServiceParams struct {
@@ -107,6 +109,12 @@ func NewKubeAPIServerParams(ctx context.Context, hcp *hyperv1.HostedControlPlane
 		params.Network = hcp.Spec.Configuration.Network
 		params.Image = hcp.Spec.Configuration.Image
 		params.Scheduler = hcp.Spec.Configuration.Scheduler
+	}
+
+	if hcp.Annotations[hyperv1.TopologyAnnotation] == hyperv1.DedicatedRequestServingComponentsTopology {
+		params.KonnectivityServiceName = manifests.KonnectivityServerProxyService("").Name
+	} else {
+		params.KonnectivityServiceName = manifests.KonnectivityServerLocalService("").Name
 	}
 
 	params.AdvertiseAddress = util.GetAdvertiseAddress(hcp, config.DefaultAdvertiseIPv4Address, config.DefaultAdvertiseIPv6Address)

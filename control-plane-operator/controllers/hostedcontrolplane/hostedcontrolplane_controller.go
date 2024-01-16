@@ -1365,6 +1365,20 @@ func (r *HostedControlPlaneReconciler) reconcileKonnectivityServerService(ctx co
 			return fmt.Errorf("failed to reconcile Konnectivity server external route: %w", err)
 		}
 	}
+
+	konnectivityServerProxyService := manifests.KonnectivityServerProxyService(hcp.Namespace)
+	if hcp.Annotations[hyperv1.TopologyAnnotation] == hyperv1.DedicatedRequestServingComponentsTopology {
+		if _, err := createOrUpdate(ctx, r.Client, konnectivityServerProxyService, func() error {
+			return konnectivity.ReconcileServerProxyService(konnectivityServerProxyService, p.OwnerRef)
+		}); err != nil {
+			return fmt.Errorf("failed to reconcile Konnectivity server proxy service: %w", err)
+		}
+	} else {
+		if _, err := util.DeleteIfNeeded(ctx, r.Client, konnectivityServerProxyService); err != nil {
+			return fmt.Errorf("failed to delete Konnectivity server proxy service: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -2349,6 +2363,20 @@ func (r *HostedControlPlaneReconciler) reconcileKonnectivity(ctx context.Context
 	}); err != nil {
 		return fmt.Errorf("failed to reconcile konnectivity agent deployment: %w", err)
 	}
+
+	serverProxyDeployment := manifests.KonnectivityServerProxyDeployment(hcp.Namespace)
+	if hcp.Annotations[hyperv1.TopologyAnnotation] == hyperv1.DedicatedRequestServingComponentsTopology {
+		if _, err := createOrUpdate(ctx, r, serverProxyDeployment, func() error {
+			return konnectivity.ReconcileServerProxyDeployment(serverProxyDeployment, p.OwnerRef, p.ServerProxyDeploymentConfig, p.HAProxyImage)
+		}); err != nil {
+			return fmt.Errorf("failed to reconcile konnectivity server proxy deployment: %w", err)
+		}
+	} else {
+		if _, err := util.DeleteIfNeeded(ctx, r.Client, serverProxyDeployment); err != nil {
+			return fmt.Errorf("failed to delete konnectivity server proxy deployment: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -2436,7 +2464,7 @@ func (r *HostedControlPlaneReconciler) reconcileKubeAPIServer(ctx context.Contex
 
 	kubeAPIServerEgressSelectorConfig := manifests.KASEgressSelectorConfig(hcp.Namespace)
 	if _, err := createOrUpdate(ctx, r, kubeAPIServerEgressSelectorConfig, func() error {
-		return kas.ReconcileEgressSelectorConfig(kubeAPIServerEgressSelectorConfig, p.OwnerRef)
+		return kas.ReconcileEgressSelectorConfig(kubeAPIServerEgressSelectorConfig, p.OwnerRef, p.KonnectivityServiceName)
 	}); err != nil {
 		return fmt.Errorf("failed to reconcile api server egress selector config: %w", err)
 	}

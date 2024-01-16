@@ -17,20 +17,23 @@ const (
 )
 
 type KonnectivityParams struct {
-	KonnectivityServerImage string
-	KonnectivityAgentImage  string
-	ExternalAddress         string
-	ExternalPort            int32
-	OwnerRef                config.OwnerRef
-	ServerDeploymentConfig  config.DeploymentConfig
-	AgentDeploymentConfig   config.DeploymentConfig
-	AgentDeamonSetConfig    config.DeploymentConfig
+	KonnectivityServerImage     string
+	KonnectivityAgentImage      string
+	HAProxyImage                string
+	ExternalAddress             string
+	ExternalPort                int32
+	OwnerRef                    config.OwnerRef
+	ServerDeploymentConfig      config.DeploymentConfig
+	AgentDeploymentConfig       config.DeploymentConfig
+	AgentDeamonSetConfig        config.DeploymentConfig
+	ServerProxyDeploymentConfig config.DeploymentConfig
 }
 
 func NewKonnectivityParams(hcp *hyperv1.HostedControlPlane, releaseImageProvider *imageprovider.ReleaseImageProvider, externalAddress string, externalPort int32, setDefaultSecurityContext bool) *KonnectivityParams {
 	p := &KonnectivityParams{
 		KonnectivityServerImage: releaseImageProvider.GetImage("konnectivity-server"),
 		KonnectivityAgentImage:  releaseImageProvider.GetImage("konnectivity-agent"),
+		HAProxyImage:            releaseImageProvider.GetImage("haproxy-router"),
 		ExternalAddress:         externalAddress,
 		ExternalPort:            externalPort,
 		OwnerRef:                config.OwnerRefFrom(hcp),
@@ -141,10 +144,26 @@ func NewKonnectivityParams(hcp *hyperv1.HostedControlPlane, releaseImageProvider
 		},
 	}
 
+	p.ServerProxyDeploymentConfig.Resources = config.ResourcesSpec{
+		konnectivityServerProxyContainer().Name: {
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("50Mi"),
+				corev1.ResourceCPU:    resource.MustParse("10m"),
+			},
+		},
+	}
+	p.ServerProxyDeploymentConfig.Scheduling.PriorityClass = config.DefaultPriorityClass
+	if hcp.Annotations[hyperv1.ControlPlanePriorityClass] != "" {
+		p.ServerProxyDeploymentConfig.Scheduling.PriorityClass = hcp.Annotations[hyperv1.ControlPlanePriorityClass]
+	}
+	p.ServerProxyDeploymentConfig.SetDefaults(hcp, nil, pointer.Int(1))
+	p.ServerProxyDeploymentConfig.SetRestartAnnotation(hcp.ObjectMeta)
+
 	// non root security context if scc capability is missing
 	p.AgentDeamonSetConfig.SetDefaultSecurityContext = setDefaultSecurityContext
 	p.AgentDeploymentConfig.SetDefaultSecurityContext = setDefaultSecurityContext
 	p.ServerDeploymentConfig.SetDefaultSecurityContext = setDefaultSecurityContext
+	p.ServerProxyDeploymentConfig.SetDefaultSecurityContext = setDefaultSecurityContext
 	// check apiserver-network-proxy image in ocp payload and use it
 	if image, exist := releaseImageProvider.ImageExist("apiserver-network-proxy"); exist {
 		p.KonnectivityServerImage = image

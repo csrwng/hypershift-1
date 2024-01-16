@@ -32,3 +32,21 @@ func KonnectivityAgentDeployment(ns string) *appsv1.Deployment {
 		},
 	}
 }
+
+func KonnectivityServerProxyDeployment(ns string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "konnectivity-server-proxy",
+			Namespace: ns,
+		},
+	}
+}
+
+func KonnectivityServerProxyService(ns string) *corev1.Service {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "konnectivity-server-proxy",
+			Namespace: ns,
+		},
+	}
+}

@@ -46,6 +46,13 @@ func konnectivityServerLabels() map[string]string {
 	}
 }
 
+func konnectivityServerProxyLabels() map[string]string {
+	return map[string]string{
+		"app":                         "konnectivity-server-proxy",
+		hyperv1.ControlPlaneComponent: "konnectivity-server-proxy",
+	}
+}
+
 func konnectivityAgentLabels() map[string]string {
 	return map[string]string{
 		"app":                         "konnectivity-agent",
@@ -382,4 +389,101 @@ func buildKonnectivityAgentContainer(image string, ips []string) func(c *corev1.
 		}
 		c.VolumeMounts = volumeMounts.ContainerMounts(c.Name)
 	}
+}
+
+func konnectivityServerProxyContainer() *corev1.Container {
+	return &corev1.Container{
+		Name: "konnectivity-server-proxy",
+	}
+}
+
+func ReconcileServerProxyDeployment(deployment *appsv1.Deployment, ownerRef config.OwnerRef, deploymentConfig config.DeploymentConfig, image string) error {
+	ownerRef.ApplyTo(deployment)
+	deployment.Spec = appsv1.DeploymentSpec{
+		Selector: &metav1.LabelSelector{
+			MatchLabels: konnectivityServerProxyLabels(),
+		},
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: konnectivityServerProxyLabels(),
+			},
+			Spec: corev1.PodSpec{
+				AutomountServiceAccountToken: pointer.Bool(false),
+				Containers: []corev1.Container{
+					util.BuildContainer(konnectivityServerProxyContainer(), buildKonnectivityServerProxyContainer(image)),
+				},
+			},
+		},
+	}
+	deploymentConfig.ApplyTo(deployment)
+	return nil
+}
+
+func buildKonnectivityServerProxyContainer(image string) func(c *corev1.Container) {
+
+	commandScriptTemplate := `#!/bin/bash
+set -euo pipefail
+cat <<EOF > /tmp/haproxy.conf
+defaults
+defaults
+  mode tcp
+  timeout client 30s
+  timeout server 30s
+  timeout connect 5s
+  timeout client-fin 5s
+  timeout server-fin 5s
+  timeout queue 5s
+  retries 3
+
+frontend konnectivity-server-frontend
+  bind *:%[1]d
+  log global
+  mode tcp
+  option tcplog
+  default_backend konnectivity-server-backend
+
+backend konnectivity-server-backend
+  mode tcp
+  log global
+  server konnectivity-server %[2]s:%[1]d
+EOF
+haproxy -f /tmp/haproxy.conf
+`
+	commandScript := fmt.Sprintf(commandScriptTemplate, KonnectivityServerLocalPort, manifests.KonnectivityServerLocalService("").Name)
+
+	return func(c *corev1.Container) {
+		c.Image = image
+		c.ImagePullPolicy = corev1.PullIfNotPresent
+		c.Command = []string{
+			"/usr/bin/bash",
+		}
+		c.Args = []string{
+			"-c",
+			commandScript,
+		}
+		c.SecurityContext = &corev1.SecurityContext{
+			Capabilities: &corev1.Capabilities{
+				Add: []corev1.Capability{
+					"NET_BIND_SERVICE",
+				},
+			},
+		}
+	}
+}
+
+func ReconcileServerProxyService(svc *corev1.Service, ownerRef config.OwnerRef) error {
+	ownerRef.ApplyTo(svc)
+	svc.Spec.Selector = konnectivityServerProxyLabels()
+	var portSpec corev1.ServicePort
+	if len(svc.Spec.Ports) > 0 {
+		portSpec = svc.Spec.Ports[0]
+	} else {
+		svc.Spec.Ports = []corev1.ServicePort{portSpec}
+	}
+	portSpec.Port = int32(KonnectivityServerLocalPort)
+	portSpec.Protocol = corev1.ProtocolTCP
+	portSpec.TargetPort = intstr.FromInt(KonnectivityServerLocalPort)
+	svc.Spec.Type = corev1.ServiceTypeClusterIP
+	svc.Spec.Ports[0] = portSpec
+	return nil
 }

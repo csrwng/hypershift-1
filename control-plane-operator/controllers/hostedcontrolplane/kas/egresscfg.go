@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/konnectivity"
-	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/manifests"
 	"github.com/openshift/hypershift/support/api"
 	"github.com/openshift/hypershift/support/certs"
 	hcpconfig "github.com/openshift/hypershift/support/config"
@@ -15,7 +14,7 @@ import (
 	kasv1beta1 "k8s.io/apiserver/pkg/apis/apiserver/v1beta1"
 )
 
-func egressSelectorConfiguration() *kasv1beta1.EgressSelectorConfiguration {
+func egressSelectorConfiguration(konnectivityServiceName string) *kasv1beta1.EgressSelectorConfiguration {
 	cpath := func(volume, file string) string {
 		return path.Join(volumeMounts.Path(kasContainerMain().Name, volume), file)
 	}
@@ -43,7 +42,7 @@ func egressSelectorConfiguration() *kasv1beta1.EgressSelectorConfiguration {
 					ProxyProtocol: kasv1beta1.ProtocolHTTPConnect,
 					Transport: &kasv1beta1.Transport{
 						TCP: &kasv1beta1.TCPTransport{
-							URL: fmt.Sprintf("https://%s:%d", manifests.KonnectivityServerLocalService("").Name, konnectivity.KonnectivityServerLocalPort),
+							URL: fmt.Sprintf("https://%s:%d", konnectivityServiceName, konnectivity.KonnectivityServerLocalPort),
 							TLSConfig: &kasv1beta1.TLSConfig{
 								CABundle:   cpath(kasVolumeKonnectivityCA().Name, certs.CASignerCertMapKey),
 								ClientCert: cpath(kasVolumeKonnectivityClientCert().Name, corev1.TLSCertKey),
@@ -69,12 +68,12 @@ func serializeEgressSelectorConfig(config *kasv1beta1.EgressSelectorConfiguratio
 	return out.Bytes(), nil
 }
 
-func ReconcileEgressSelectorConfig(config *corev1.ConfigMap, ownerRef hcpconfig.OwnerRef) error {
+func ReconcileEgressSelectorConfig(config *corev1.ConfigMap, ownerRef hcpconfig.OwnerRef, konnectivityServiceName string) error {
 	ownerRef.ApplyTo(config)
 	if config.Data == nil {
 		config.Data = map[string]string{}
 	}
-	configBytes, err := serializeEgressSelectorConfig(egressSelectorConfiguration())
+	configBytes, err := serializeEgressSelectorConfig(egressSelectorConfiguration(konnectivityServiceName))
 	if err != nil {
 		return err
 	}
