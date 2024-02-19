@@ -123,6 +123,59 @@ func DefaultWorkerSGIngressRules(machineCIDRs []string, sgGroupID, sgUserID stri
 			},
 		},
 	}
+}
+
+func VPCEndpointIngressRules(defaultSGGroupID, defaultSGUserID string) []*ec2.IpPermission {
+	return []*ec2.IpPermission{
+		{
+			// This is for the private link endpoint.
+			IpProtocol: aws.String("tcp"),
+			FromPort:   aws.Int64(6443),
+			ToPort:     aws.Int64(6443),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				{
+					GroupId: aws.String(defaultSGGroupID),
+					UserId:  aws.String(defaultSGUserID),
+				},
+			},
+		},
+		{
+			// This is for the private link endpoint.
+			IpProtocol: aws.String("tcp"),
+			FromPort:   aws.Int64(443),
+			ToPort:     aws.Int64(443),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				{
+					GroupId: aws.String(defaultSGGroupID),
+					UserId:  aws.String(defaultSGUserID),
+				},
+			},
+		},
+		{
+			// This is for the private link endpoint.
+			IpProtocol: aws.String("udp"),
+			FromPort:   aws.Int64(6443),
+			ToPort:     aws.Int64(6443),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				{
+					GroupId: aws.String(defaultSGGroupID),
+					UserId:  aws.String(defaultSGUserID),
+				},
+			},
+		},
+		{
+			// This is for the private link endpoint.
+			IpProtocol: aws.String("udp"),
+			FromPort:   aws.Int64(443),
+			ToPort:     aws.Int64(443),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				{
+					GroupId: aws.String(defaultSGGroupID),
+					UserId:  aws.String(defaultSGUserID),
+				},
+			},
+		},
+	}
 
 	// Typically, only one machineCIDR is provided, however we handle many machineCIDRs because it is allowed by
 	// OpenShift.
