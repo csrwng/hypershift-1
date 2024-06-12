@@ -27,6 +27,7 @@ require (
 	github.com/clarketm/json v1.17.1
 	github.com/coreos/ignition/v2 v2.17.0
 	github.com/docker/distribution v2.8.3+incompatible
+	github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/go-logr/logr v1.4.2
