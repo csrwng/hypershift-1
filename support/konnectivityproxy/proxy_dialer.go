@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -34,11 +35,16 @@ type httpProxyDialer struct {
 }
 
 func (hpd *httpProxyDialer) Dial(network string, addr string) (net.Conn, error) {
+	fmt.Println("httpProxyDialer Dial")
 	hostPort, _ := hostPortNoPort(hpd.proxyURL)
+	fmt.Println("hostPort", hostPort)
+	fmt.Println("forward dialing", "network", network, "hostPort", hostPort, "dialer", fmt.Sprintf("%T", hpd.forwardDial))
 	conn, err := hpd.forwardDial(network, hostPort)
 	if err != nil {
+		fmt.Println("Error occurred with forward dial", err)
 		return nil, err
 	}
+	fmt.Println("Forward dial connection established")
 
 	connectHeader := make(http.Header)
 	if user := hpd.proxyURL.User; user != nil {
@@ -55,6 +61,7 @@ func (hpd *httpProxyDialer) Dial(network string, addr string) (net.Conn, error) 
 		Host:   addr,
 		Header: connectHeader,
 	}
+	fmt.Println("Assembled connection request", connectReq)
 
 	if err := connectReq.Write(conn); err != nil {
 		conn.Close()
@@ -66,15 +73,19 @@ func (hpd *httpProxyDialer) Dial(network string, addr string) (net.Conn, error) 
 	br := bufio.NewReader(conn)
 	resp, err := http.ReadResponse(br, connectReq)
 	if err != nil {
+		fmt.Println("Error returned from ReadResponse", err)
 		conn.Close()
 		return nil, err
 	}
+	fmt.Println("Read response was successful")
 
 	if resp.StatusCode != 200 {
+		fmt.Println("Status code is not success", resp.StatusCode)
 		conn.Close()
 		f := strings.SplitN(resp.Status, " ", 2)
 		return nil, errors.New(f[1])
 	}
+	fmt.Println("Connection established successfully")
 	return conn, nil
 }
 

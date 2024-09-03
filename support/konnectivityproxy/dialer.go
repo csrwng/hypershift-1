@@ -240,18 +240,23 @@ func (p *konnectivityProxy) getTLSConfig() *tls.Config {
 // DialContext dials the specified address using the specified context. It implements the upstream
 // proxy.Dialer interface.
 func (p *konnectivityProxy) DialContext(ctx context.Context, network string, requestAddress string) (net.Conn, error) {
+	fmt.Println("DialContext --in", "network", network, "requestAddress", requestAddress)
 	requestHost, requestPort, err := net.SplitHostPort(requestAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid address (%s): %w", requestAddress, err)
 	}
+	fmt.Println("requestHost", requestHost, "requestPort", requestPort)
 	// return a dial direct function which respects any proxy environment settings
 	if p.connectDirectlyToCloudAPIs && isCloudAPI(requestHost) {
+		fmt.Println("Request is to cloud API, connecting directly to it via proxy")
 		return p.dialDirectWithProxy(ctx, network, requestAddress)
 	}
+	fmt.Println("Request is not to cloud API")
 
 	// return a dial direct function ignoring any proxy environment settings
 	shouldDNSFallback := p.fallbackToMCDNS.get()
 	if shouldDNSFallback && p.resolveFromManagementClusterDNS {
+		fmt.Println("Should DNS fallback is true, trying direct connection")
 		return p.dialDirectWithoutProxy(ctx, network, requestAddress)
 	}
 
