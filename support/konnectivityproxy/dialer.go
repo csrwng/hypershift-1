@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -211,6 +212,9 @@ type konnectivityProxy struct {
 
 	tlsConfigOnce sync.Once
 	tlsConfig     *tls.Config
+
+	httpDialerOnce sync.Once
+	httpDialer     proxy.Dialer
 }
 
 func (p *konnectivityProxy) Dial(network, address string) (net.Conn, error) {
@@ -245,8 +249,8 @@ func (p *konnectivityProxy) DialContext(ctx context.Context, network string, req
 		return nil, fmt.Errorf("invalid address (%s): %w", requestAddress, err)
 	}
 	// return a dial direct function which respects any proxy environment settings
-	if p.connectDirectlyToCloudAPIs && isCloudAPI(requestHost) {
-		return p.dialDirectWithProxy(ctx, network, requestAddress)
+	if p.connectDirectlyToCloudAPIs && IsCloudAPI(requestHost) {
+		return p.dialDirectWithProxy(network, requestAddress)
 	}
 
 	// return a dial direct function ignoring any proxy environment settings
@@ -314,8 +318,19 @@ func (p *konnectivityProxy) dialDirectWithoutProxy(ctx context.Context, network,
 }
 
 // dialDirectWithProxy directly connect to the target, respecting any local proxy settings from the environment
-func (p *konnectivityProxy) dialDirectWithProxy(ctx context.Context, network, addr string) (net.Conn, error) {
-	return proxy.Dial(ctx, network, addr)
+func (p *konnectivityProxy) dialDirectWithProxy(network, addr string) (net.Conn, error) {
+	p.httpDialerOnce.Do(func() {
+		if proxyURLStr := os.Getenv("HTTPS_PROXY"); proxyURLStr != "" {
+			proxyURL, err := url.Parse(proxyURLStr)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to parse HTTPS_PROXY(%s): %v", proxyURLStr, err)
+				p.httpDialer = proxy.Direct
+				return
+			}
+			p.httpDialer = newHTTPDialer(proxyURL)
+		}
+	})
+	return p.httpDialer.Dial(network, addr)
 }
 
 type syncBool struct {
@@ -335,7 +350,7 @@ func (f *syncBool) set(valueToSet bool) {
 	f.value = valueToSet
 }
 
-// isCloudAPI is a hardcoded list of domains that should not be routed through Konnectivity but be reached
+// IsCloudAPI is a hardcoded list of domains that should not be routed through Konnectivity but be reached
 // through the management cluster. This is needed to support management clusters with a proxy configuration,
 // as the components themselves already have proxy env vars pointing to the socks proxy (this binary). If we then
 // actually end up proxying or not depends on the env for this binary.
@@ -343,7 +358,7 @@ func (f *syncBool) set(valueToSet bool) {
 // AWS: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
 // AZURE: https://docs.microsoft.com/en-us/rest/api/azure/#how-to-call-azure-rest-apis-with-curl
 // IBMCLOUD: https://cloud.ibm.com/apidocs/iam-identity-token-api#endpoints
-func isCloudAPI(host string) bool {
+func IsCloudAPI(host string) bool {
 	return strings.HasSuffix(host, ".amazonaws.com") ||
 		strings.HasSuffix(host, ".microsoftonline.com") ||
 		strings.HasSuffix(host, "azure.com") ||

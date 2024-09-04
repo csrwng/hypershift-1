@@ -113,6 +113,15 @@ func NewStartCommand() *cobra.Command {
 		httpProxy.Tr = &http.Transport{
 			TLSClientConfig: proxyTLS,
 			Proxy: func(req *http.Request) (*url.URL, error) {
+				if opts.ConnectDirectlyToCloudAPIs {
+					host, _, err := net.SplitHostPort(req.URL.Host)
+					if err != nil {
+						return nil, err
+					}
+					if konnectivityproxy.IsCloudAPI(host) {
+						return nil, nil
+					}
+				}
 				return userProxyFunc(req.URL)
 			},
 			Dial: konnectivityDialer.Dial,
