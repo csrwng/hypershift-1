@@ -379,6 +379,9 @@ func fixHostedControlPlaneAfterFuzz(in runtime.Object) {
 	if hc.Spec.Platform.OpenStack != nil {
 		hc.Spec.Platform.OpenStack = nil
 	}
+	if hc.Spec.Platform.AWS != nil {
+		hc.Spec.Platform.AWS.SharedVPC = nil
+	}
 }
 
 func fixHosterClusterAfterFuzz(in runtime.Object) {
@@ -391,6 +394,9 @@ func fixHosterClusterAfterFuzz(in runtime.Object) {
 	// OpenStack support on alpha.
 	if hc.Spec.Platform.OpenStack != nil {
 		hc.Spec.Platform.OpenStack = nil
+	}
+	if hc.Spec.Platform.AWS != nil {
+		hc.Spec.Platform.AWS.SharedVPC = nil
 	}
 }
 

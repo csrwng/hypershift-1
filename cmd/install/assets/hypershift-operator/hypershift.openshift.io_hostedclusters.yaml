@@ -8205,6 +8205,16 @@ spec:
                           - url
                           type: object
                         type: array
+                      sharedVPC:
+                        properties:
+                          controlPlaneRoleARN:
+                            type: string
+                          ingressRoleARN:
+                            type: string
+                        required:
+                        - controlPlaneRoleARN
+                        - ingressRoleARN
+                        type: object
                     required:
                     - region
                     - rolesRef

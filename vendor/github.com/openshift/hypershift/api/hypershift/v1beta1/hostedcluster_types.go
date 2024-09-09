@@ -1341,6 +1341,13 @@ type AWSPlatformSpec struct {
 	// +kubebuilder:default=false
 	// +optional
 	MultiArch bool `json:"multiArch"`
+
+	SharedVPC *AWSSharedVPC `json:"sharedVPC,omitempty"`
+}
+
+type AWSSharedVPC struct {
+	IngressRoleARN      string `json:"ingressRoleARN"`
+	ControlPlaneRoleARN string `json:"controlPlaneRoleARN"`
 }
 
 type AWSRoleCredentials struct {

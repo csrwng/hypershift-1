@@ -1536,6 +1536,18 @@ bool
 CPU architectures, i.e., supporting arm64 NodePools and supporting amd64 NodePools on the same Hosted Cluster.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>sharedVPC</code></br>
+<em>
+<a href="#hypershift.openshift.io/v1beta1.AWSSharedVPC">
+AWSSharedVPC
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 ###AWSPlatformStatus { #hypershift.openshift.io/v1beta1.AWSPlatformStatus }
@@ -2175,6 +2187,43 @@ string
 <p>URL is fully qualified URI with scheme https, that overrides the default generated
 endpoint for a client.
 This must be provided and cannot be empty.</p>
+</td>
+</tr>
+</tbody>
+</table>
+###AWSSharedVPC { #hypershift.openshift.io/v1beta1.AWSSharedVPC }
+<p>
+(<em>Appears on:</em>
+<a href="#hypershift.openshift.io/v1beta1.AWSPlatformSpec">AWSPlatformSpec</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ingressRoleARN</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneRoleARN</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
