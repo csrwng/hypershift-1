@@ -1348,6 +1348,7 @@ type AWSPlatformSpec struct {
 type AWSSharedVPC struct {
 	IngressRoleARN      string `json:"ingressRoleARN"`
 	ControlPlaneRoleARN string `json:"controlPlaneRoleARN"`
+	LocalZoneID         string `json:"localZoneID"`
 }
 
 type AWSRoleCredentials struct {

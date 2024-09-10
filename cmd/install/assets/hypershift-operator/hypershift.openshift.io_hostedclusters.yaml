@@ -8211,9 +8211,12 @@ spec:
                             type: string
                           ingressRoleARN:
                             type: string
+                          localZoneID:
+                            type: string
                         required:
                         - controlPlaneRoleARN
                         - ingressRoleARN
+                        - localZoneID
                         type: object
                     required:
                     - region

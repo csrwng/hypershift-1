@@ -22,6 +22,7 @@ package v1beta1
 type AWSSharedVPCApplyConfiguration struct {
 	IngressRoleARN      *string `json:"ingressRoleARN,omitempty"`
 	ControlPlaneRoleARN *string `json:"controlPlaneRoleARN,omitempty"`
+	LocalZoneID         *string `json:"localZoneID,omitempty"`
 }
 
 // AWSSharedVPCApplyConfiguration constructs an declarative configuration of the AWSSharedVPC type for use with
@@ -43,5 +44,13 @@ func (b *AWSSharedVPCApplyConfiguration) WithIngressRoleARN(value string) *AWSSh
 // If called multiple times, the ControlPlaneRoleARN field is set to the value of the last call.
 func (b *AWSSharedVPCApplyConfiguration) WithControlPlaneRoleARN(value string) *AWSSharedVPCApplyConfiguration {
 	b.ControlPlaneRoleARN = &value
+	return b
+}
+
+// WithLocalZoneID sets the LocalZoneID field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LocalZoneID field is set to the value of the last call.
+func (b *AWSSharedVPCApplyConfiguration) WithLocalZoneID(value string) *AWSSharedVPCApplyConfiguration {
+	b.LocalZoneID = &value
 	return b
 }

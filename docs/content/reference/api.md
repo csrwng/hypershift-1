@@ -2226,6 +2226,16 @@ string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>localZoneID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 ###AgentNodePoolPlatform { #hypershift.openshift.io/v1beta1.AgentNodePoolPlatform }
