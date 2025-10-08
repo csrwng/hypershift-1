@@ -26,6 +26,7 @@ import (
 	konnectivityhttpsproxy "github.com/openshift/hypershift/konnectivity-https-proxy"
 	konnectivitysocks5proxy "github.com/openshift/hypershift/konnectivity-socks5-proxy"
 	kubernetesdefaultproxy "github.com/openshift/hypershift/kubernetes-default-proxy"
+	metricsproxy "github.com/openshift/hypershift/metrics-proxy"
 	hyperapi "github.com/openshift/hypershift/support/api"
 	"github.com/openshift/hypershift/support/capabilities"
 	"github.com/openshift/hypershift/support/config"
@@ -98,6 +99,8 @@ func commandFor(name string) *cobra.Command {
 		cmd = syncfgconfigmap.NewRunCommand()
 	case "sync-global-pullsecret":
 		cmd = syncglobalpullsecret.NewRunCommand()
+	case "metrics-proxy":
+		cmd = metricsproxy.NewStartCommand()
 	default:
 		// for the default case, there is no need
 		// to convert flags, return immediately
@@ -151,6 +154,7 @@ func defaultCommand() *cobra.Command {
 	cmd.AddCommand(kasbootstrap.NewRunCommand())
 	cmd.AddCommand(syncfgconfigmap.NewRunCommand())
 	cmd.AddCommand(syncglobalpullsecret.NewRunCommand())
+	cmd.AddCommand(metricsproxy.NewStartCommand())
 	return cmd
 }
 

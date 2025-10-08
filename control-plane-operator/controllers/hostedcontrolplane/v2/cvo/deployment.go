@@ -20,7 +20,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -99,6 +101,87 @@ func (cvo *clusterVersionOperator) adaptDeployment(cpContext component.WorkloadC
 			c.Args = append(c.Args, fmt.Sprintf("--metrics-url=https://thanos-querier.openshift-monitoring.svc:9092?namespace=%s", cpContext.HCP.Namespace))
 		}
 	})
+
+	// Add metrics-proxy container
+	metricsProxyContainer := corev1.Container{
+		Name:  "metrics-proxy",
+		Image: cpContext.ReleaseImageProvider.GetImage(util.CPOImageName),
+		Command: []string{
+			"control-plane-operator",
+			"metrics-proxy",
+		},
+		Args: []string{
+			"--listen-addr=:8444",
+			"--backend-url=http://localhost:8443/metrics",
+			"--bearer-token-file=/var/run/secrets/openshift/serviceaccount/token",
+			"--ca-bundle=/etc/kubernetes/certs/ca-bundle.pem",
+			"--server-cert=/etc/kubernetes/certs/metrics-proxy/tls.crt",
+			"--server-key=/etc/kubernetes/certs/metrics-proxy/tls.key",
+			"--token-refresh-interval=30",
+		},
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "metrics-proxy",
+				ContainerPort: 8444,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("10m"),
+				corev1.ResourceMemory: resource.MustParse("50Mi"),
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "cloud-token",
+				MountPath: "/var/run/secrets/openshift/serviceaccount",
+			},
+			{
+				Name:      "metrics-proxy-certs",
+				MountPath: "/etc/kubernetes/certs/metrics-proxy",
+			},
+			{
+				Name:      "ca-bundle",
+				MountPath: "/etc/kubernetes/certs",
+			},
+		},
+	}
+
+	deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, metricsProxyContainer)
+
+	// Add volumes for metrics-proxy
+	metricsProxyCertsVolume := corev1.Volume{
+		Name: "metrics-proxy-certs",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName:  "metrics-proxy-certs",
+				DefaultMode: ptr.To[int32](0640),
+			},
+		},
+	}
+
+	caBundleVolume := corev1.Volume{
+		Name: "ca-bundle",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "openshift-service-ca",
+				},
+				Items: []corev1.KeyToPath{
+					{
+						Key:  "ca-bundle.crt",
+						Path: "ca-bundle.pem",
+					},
+				},
+			},
+		},
+	}
+
+	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
+		metricsProxyCertsVolume,
+		caBundleVolume,
+	)
 
 	return nil
 }

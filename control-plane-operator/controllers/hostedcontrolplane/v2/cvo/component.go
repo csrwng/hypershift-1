@@ -64,6 +64,12 @@ func NewComponent(enableCVOManagementClusterMetricsAccess bool) component.Contro
 		InjectAvailabilityProberContainer(util.AvailabilityProberOpts{
 			KubeconfigVolumeName: "kubeconfig",
 		}).
+		InjectTokenMinterContainer(component.TokenMinterContainerOptions{
+			TokenType:               component.KubeAPIServerToken,
+			ServiceAccountName:      ComponentName,
+			ServiceAccountNameSpace: "kube-system",
+			KubeconfigSecretName:    "service-network-admin-kubeconfig",
+		}).
 		Build()
 }
 

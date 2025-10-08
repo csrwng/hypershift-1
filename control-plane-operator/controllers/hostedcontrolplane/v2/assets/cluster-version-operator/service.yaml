@@ -12,6 +12,10 @@ spec:
     port: 8443
     protocol: TCP
     targetPort: https
+  - name: metrics-proxy
+    port: 8444
+    protocol: TCP
+    targetPort: metrics-proxy
   selector:
     app: cluster-version-operator
     k8s-app: cluster-version-operator
