@@ -293,7 +293,7 @@ func (p *konnectivityProxy) DialContext(ctx context.Context, network string, req
 
 	// Bound CONNECT handshake I/O to avoid indefinite stalls and clear on success.
 	_ = konnectivityConnection.SetDeadline(time.Now().Add(60 * time.Second))
-	defer konnectivityConnection.SetDeadline(time.Time{})
+	defer func() { _ = konnectivityConnection.SetDeadline(time.Time{}) }()
 
 	if p.resolveBeforeDial && !p.disableResolver && !isIP(requestHost) {
 		log.Info("Host name must be resolved before dialing", "host", requestHost)

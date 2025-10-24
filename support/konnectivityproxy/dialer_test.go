@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -274,10 +275,10 @@ func TestKonnectivityHealthEndRetryPreventsStubbornFlag(t *testing.T) {
 
 func TestIsCloudAPI(t *testing.T) {
 	tests := []struct {
-		name         string
-		host         string
-		expected     bool
-		description  string
+		name        string
+		host        string
+		expected    bool
+		description string
 	}{
 		// Valid cloud API hosts
 		{
