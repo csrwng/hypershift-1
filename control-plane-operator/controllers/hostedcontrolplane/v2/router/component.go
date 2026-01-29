@@ -49,17 +49,19 @@ func NewComponent() component.ControlPlaneComponent {
 		Build()
 }
 
-// UseHCPRouter returns true if a dedicated common router is created for a HCP to handle ingress for the managed endpoints.
-// This is true when the API input specifies intent for the following:
-// 1 - AWS endpointAccess or a platform is private somehow (e.g. endpointAccess=publicAndPrivate or isARO) or is public and configured with external DNS.
-// 2 - When 1 is true, we recommend (and automate via CLI) ServicePublishingStrategy to be "Route" for all endpoints but the KAS
-// which needs a dedicated Service type LB external to be exposed if no external DNS is supported.
-// Otherwise, the Routes use the management cluster Domain and resolve through the default ingress controller.
+// UseHCPRouter returns true when the HCP routes should be served by a dedicated
+// HCP router. This occurs when:
+//  1. The cluster is private (e.g. AWS/GCP Private or PublicAndPrivate endpoint access,
+//     or ARO with Swift enabled), OR
+//  2. The cluster is public but uses a dedicated Route for KAS DNS (rather than a LoadBalancer)
+//
+// Excludes IBM Cloud platform.
 func UseHCPRouter(hcp *hyperv1.HostedControlPlane) bool {
-	platform := hcp.Spec.Platform.Type
-	if platform == hyperv1.IBMCloudPlatform {
+	if hcp.Spec.Platform.Type == hyperv1.IBMCloudPlatform {
 		return false
 	}
-
-	return util.IsPrivateHCP(hcp) || util.IsPublicWithDNS(hcp)
+	// Router infrastructure is needed when:
+	// 1. Cluster has private access (Private or PublicAndPrivate, or ARO Swift) - for internal routes, OR
+	// 2. External routes are labeled for HCP router (Public with KAS DNS)
+	return util.IsPrivateHCP(hcp) || util.LabelHCPRoutes(hcp)
 }

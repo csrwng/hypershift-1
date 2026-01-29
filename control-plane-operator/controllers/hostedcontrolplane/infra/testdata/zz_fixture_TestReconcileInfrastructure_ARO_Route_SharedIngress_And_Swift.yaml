@@ -71,8 +71,6 @@ routes:
         weight: null
     status: {}
   - metadata:
-      labels:
-        hypershift.openshift.io/hosted-control-plane: test-namespace
       name: oauth
       namespace: test-namespace
       ownerReferences:
