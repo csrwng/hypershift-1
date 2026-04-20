@@ -594,6 +594,27 @@ func (c *CAPI) reconcileMachineDeployment(ctx context.Context, log logr.Logger,
 	// If the MachineDeployment is now processing we know
 	// is at the expected version (spec.version) and config (userData Secret) so we reconcile status and annotation.
 	if MachineDeploymentComplete(machineDeployment) {
+		// In CAPI 1.11, MachineDeploymentComplete() can briefly return true before the rollout
+		// fully starts due to transient v1beta1 status values. When we detect a completion that
+		// would transition the NodePool state, we re-fetch the MachineDeployment after a short
+		// delay to confirm the rollout is genuinely complete.
+		// TODO(https://issues.redhat.com/browse/OCPBUGS-77922): remove this workaround once
+		// the root cause is fixed.
+		mdIsTransitioning := nodePool.Status.Version != targetVersion ||
+			nodePool.Annotations[nodePoolAnnotationCurrentConfig] != targetConfigHash ||
+			nodePool.Annotations[nodePoolAnnotationPlatformMachineTemplate] != machineTemplateCR.GetName()
+		if mdIsTransitioning {
+			time.Sleep(1 * time.Second)
+			freshMD := &capiv1.MachineDeployment{}
+			if err := c.Client.Get(ctx, client.ObjectKeyFromObject(machineDeployment), freshMD); err != nil {
+				return fmt.Errorf("failed to re-fetch MachineDeployment for completion confirmation: %w", err)
+			}
+			if !MachineDeploymentComplete(freshMD) {
+				log.Info("MachineDeploymentComplete was transient, skipping status update")
+				return nil
+			}
+		}
+
 		if nodePool.Status.Version != targetVersion {
 			log.Info("Version update complete",
 				"previous", nodePool.Status.Version, "new", targetVersion)
