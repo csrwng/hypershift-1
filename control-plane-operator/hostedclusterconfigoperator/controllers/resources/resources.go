@@ -2594,7 +2594,7 @@ func (r *reconciler) reconcileAzureIdentityWebhook(ctx context.Context) []error 
 		errs = append(errs, fmt.Errorf("failed to reconcile %T %s: %w", clusterRoleBinding, clusterRoleBinding.Name, err))
 	}
 
-	failFailurePolicy := admissionregistrationv1.Fail
+	ignoreFailurePolicy := admissionregistrationv1.Ignore
 	sideEffectsNone := admissionregistrationv1.SideEffectClassNone
 	matchEquivalent := admissionregistrationv1.Equivalent
 	reinvocationIfNeeded := admissionregistrationv1.IfNeededReinvocationPolicy
@@ -2607,7 +2607,7 @@ func (r *reconciler) reconcileAzureIdentityWebhook(ctx context.Context) []error 
 				CABundle: []byte(r.rootCA),
 				URL:      ptr.To("https://127.0.0.1:9443/mutate-v1-pod"),
 			},
-			FailurePolicy:      &failFailurePolicy,
+			FailurePolicy:      &ignoreFailurePolicy,
 			MatchPolicy:        &matchEquivalent,
 			ReinvocationPolicy: &reinvocationIfNeeded,
 			ObjectSelector: &metav1.LabelSelector{
