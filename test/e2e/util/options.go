@@ -254,6 +254,10 @@ func (o *Options) DefaultClusterOptions(t *testing.T) PlatformAgnosticOptions {
 		ExternalCNIProvider: o.ExternalCNIProvider,
 	}
 
+	if o.Platform == hyperv1.AzurePlatform && createOption.EtcdStorageClass == "" {
+		createOption.EtcdStorageClass = AzurePremiumV2StorageClassName
+	}
+
 	switch o.Platform {
 	case hyperv1.AWSPlatform, hyperv1.AzurePlatform, hyperv1.NonePlatform, hyperv1.KubevirtPlatform, hyperv1.OpenStackPlatform, hyperv1.GCPPlatform:
 		createOption.Arch = hyperv1.ArchitectureAMD64

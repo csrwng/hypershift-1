@@ -255,6 +255,13 @@ func main(m *testing.M) int {
 		return -1
 	}
 
+	if globalOpts.Platform == hyperv1.AzurePlatform {
+		if err := e2eutil.EnsureAzurePremiumV2StorageClass(testContext); err != nil {
+			log.Error(err, "failed to ensure Azure Premium V2 StorageClass")
+			return -1
+		}
+	}
+
 	// If TEST_CPO_OVERRIDE=1 is set, skip all tests if override tests not enabled for this platform
 	if os.Getenv("TEST_CPO_OVERRIDE") == "1" {
 		if !controlplaneoperatoroverrides.ShouldRunOverrideTests(string(globalOpts.Platform)) {
